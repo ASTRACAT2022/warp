@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline' 'unsafe-eval'">
     <title>AstraConfig Pro</title>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
             --bg: #0f172a;
@@ -14,6 +16,8 @@
             --text: #f8fafc;
             --glass-border: rgba(255, 255, 255, 0.1);
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            --error: #f87171;
+            --success: #34d399;
         }
 
         * {
@@ -48,6 +52,7 @@
             padding: 1.5rem;
             border: 1px solid var(--glass-border);
             box-shadow: var(--shadow);
+            position: relative;
         }
 
         .logo {
@@ -134,15 +139,6 @@
             border-top: 1px solid var(--glass-border);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .sidebar, .editor-container {
-            animation: fadeIn 0.4s ease;
-        }
-
         .telegram-button {
             position: fixed;
             bottom: 20px;
@@ -163,6 +159,22 @@
             transform: translateY(-2px);
             background: #229ED9;
         }
+
+        .error-message {
+            color: var(--error);
+            font-size: 0.9em;
+            margin: 0.5rem 0;
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sidebar, .editor-container {
+            animation: fadeIn 0.4s ease;
+        }
     </style>
 </head>
 <body>
@@ -173,7 +185,8 @@
                 <h2>AstraConfig</h2>
             </div>
 
-            <div class="cf-turnstile" id="captchaContainer"></div>
+            <div id="captchaContainer" class="cf-turnstile"></div>
+            <div class="error-message" id="captchaError"></div>
 
             <select id="endpointSelect">
                 <option value="">Выберите сервер</option>
@@ -181,6 +194,7 @@
                 <option value="188.114.96.198:878">Лондон (Великобритания)</option>
                 <option value="custom">Другой сервер</option>
             </select>
+            <div class="error-message" id="endpointError"></div>
 
             <input type="text" id="customEndpoint" placeholder="IP:Порт" style="display: none;">
 
@@ -188,10 +202,11 @@
                 <option value="85.209.2.112" selected>Стандартный DNS</option>
                 <option value="1.1.1.1,2606:4700:4700::1111">Cloudflare DNS</option>
             </select>
+            <div class="error-message" id="dnsError"></div>
 
             <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
                 <button onclick="handleGenerate()">🔄 Сгенерировать</button>
-                <button onclick="downloadConfig()" id="downloadBtn" disabled>💾 Скачать</button>
+                <button id="downloadBtn" disabled>💾 Скачать</button>
                 <button onclick="generateQR()">🔳 QR-код</button>
             </div>
 
@@ -214,55 +229,133 @@
         Наш Telegram
     </a>
 
-    <script type="text/javascript" >
-       (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-       m[i].l=1*new Date();
-       k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-       (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-
-       ym(100530848, "init", {
-            clickmap:true,
-            trackLinks:true,
-            accurateTrackBounce:true,
-            webvisor:true
-       });
-    </script>
-    <noscript><div><img src="https://mc.yandex.ru/watch/100530848" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-
     <script>
-        let captchaToken = null;
-        let currentConfig = '';
-        const downloadBtn = document.getElementById('downloadBtn');
+        (function() {
+            'use strict';
+            
+            const state = {
+                captcha: null,
+                config: null,
+                endpoints: [],
+                validation: {
+                    endpointRegex: /^(\d{1,3}\.){3}\d{1,3}:\d{1,5}$/
+                }
+            };
 
-        turnstile.render('#captchaContainer', {
-            sitekey: '0x4AAAAAABLgaFLEZGcqAM3Q',
-            theme: 'dark',
-            callback: (token) => {
-                captchaToken = token;
-                updateStatus('🟢 CAPTCHA пройдена');
-                downloadBtn.disabled = false;
-                document.getElementById('captchaContainer').style.pointerEvents = 'none';
-            },
-            'expired-callback': () => {
-                captchaToken = null;
-                updateStatus('🔴 CAPTCHA истекла');
-                downloadBtn.disabled = true;
-                document.getElementById('captchaContainer').style.pointerEvents = 'auto';
+            const elements = {
+                configEditor: document.getElementById('configEditor'),
+                downloadBtn: document.getElementById('downloadBtn'),
+                endpointSelect: document.getElementById('endpointSelect'),
+                customEndpoint: document.getElementById('customEndpoint'),
+                dnsSelect: document.getElementById('dnsSelect'),
+                status: document.getElementById('status'),
+                captchaContainer: document.getElementById('captchaContainer'),
+                captchaError: document.getElementById('captchaError'),
+                endpointError: document.getElementById('endpointError'),
+                dnsError: document.getElementById('dnsError')
+            };
+
+            function init() {
+                setupEventListeners();
+                validateEnvironment();
+                loadEndpoints();
+                initCaptcha();
             }
-        });
 
-        async function handleGenerate() {
-            if (!captchaToken) {
-                updateStatus('🔴 Сначала пройдите CAPTCHA!');
-                return;
+            function setupEventListeners() {
+                elements.endpointSelect.addEventListener('change', handleEndpointChange);
+                elements.downloadBtn.addEventListener('click', downloadConfig);
             }
 
-            try {
-                const keys = await generateKeyPair();
+            function validateEnvironment() {
+                const errors = [];
+                if (!window.crypto?.subtle) errors.push('Требуется современный браузер');
+                if (location.protocol !== 'https:') errors.push('Требуется HTTPS');
+                if (errors.length) showFatalError(errors.join('. '));
+            }
+
+            function loadEndpoints() {
+                state.endpoints = [
+                    '188.114.99.235:988',
+                    '188.114.96.198:878',
+                    '162.159.195.137:1018'
+                ];
+            }
+
+            function initCaptcha() {
+                state.captcha = turnstile.render(elements.captchaContainer, {
+                    sitekey: '0x4AAAAAABLgaFLEZGcqAM3Q',
+                    theme: 'dark',
+                    callback: token => {
+                        state.captcha = token;
+                        hideError('captcha');
+                        elements.downloadBtn.disabled = false;
+                    },
+                    'expired-callback': () => showError('CAPTCHA истекла', 'captcha'),
+                    'error-callback': () => showError('Ошибка CAPTCHA', 'captcha')
+                });
+            }
+
+            async function handleGenerate() {
+                try {
+                    clearErrors();
+                    validateInputs();
+                    await generateConfig();
+                    showSuccess('Конфигурация создана');
+                    setTimeout(resetCaptcha, 30000);
+                } catch (error) {
+                    handleError(error);
+                }
+            }
+
+            function validateInputs() {
+                if (!state.captcha) throw new Error('CAPTCHA не пройдена', 'captcha');
+                
                 const endpoint = getEndpoint();
-                const dns = document.getElementById('dnsSelect').value;
+                if (!endpoint) throw new Error('Выберите сервер', 'endpoint');
+                if (!state.validation.endpointRegex.test(endpoint)) throw new Error('Неверный формат сервера', 'endpoint');
+                
+                const dns = elements.dnsSelect.value;
+                if (!dns) throw new Error('Выберите DNS', 'dns');
+            }
 
-                currentConfig = `[Interface]
+            async function generateConfig() {
+                const keys = await generateKeyPair();
+                state.config = buildConfig(keys, getEndpoint(), elements.dnsSelect.value);
+                elements.configEditor.value = state.config;
+            }
+
+            async function generateKeyPair() {
+                try {
+                    const keyPair = await crypto.subtle.generateKey(
+                        { name: "ECDH", namedCurve: "P-384" },
+                        true,
+                        ["deriveKey"]
+                    );
+
+                    return {
+                        privateKey: await exportKey(keyPair.privateKey, "pkcs8"),
+                        publicKey: await exportKey(keyPair.publicKey, "spki")
+                    };
+                } catch (error) {
+                    throw new Error('Ошибка генерации ключей: ' + error.message);
+                }
+            }
+
+            async function exportKey(key, format) {
+                const exported = await crypto.subtle.exportKey(format, key);
+                return arrayToBase64(exported);
+            }
+
+            function arrayToBase64(buffer) {
+                return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+                    .replace(/=/g, '')
+                    .replace(/\+/g, '-')
+                    .replace(/\//g, '_');
+            }
+
+            function buildConfig(keys, endpoint, dns) {
+                return `[Interface]
 PrivateKey = ${keys.privateKey}
 Address = 172.16.0.2/32
 DNS = ${dns}
@@ -274,107 +367,82 @@ AllowedIPs = 0.0.0.0/0, ::/0
 Endpoint = ${endpoint}
 PersistentKeepalive = 25
 # Сгенерировано: ${new Date().toLocaleString('ru-RU')}`;
+            }
 
-                document.getElementById('configEditor').value = currentConfig;
-                downloadBtn.disabled = false;
-                updateStatus('🟢 Конфигурация создана');
+            function downloadConfig() {
+                if (!state.config) return;
+                const blob = new Blob([state.config], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'astracatwarp.conf';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            function generateQR() {
+                if (!state.config) return;
+                const qrContainer = document.createElement('div');
+                qrContainer.style.position = 'fixed';
+                qrContainer.style.bottom = '20px';
+                qrContainer.style.right = '20px';
+                qrContainer.style.background = 'white';
+                qrContainer.style.padding = '10px';
+                qrContainer.style.borderRadius = '8px';
                 
-                setTimeout(() => {
-                    turnstile.reset('#captchaContainer');
-                    captchaToken = null;
-                    document.getElementById('captchaContainer').style.pointerEvents = 'auto';
-                }, 3000);
-
-            } catch (error) {
-                updateStatus(`🔴 Ошибка: ${error.message}`);
-                downloadBtn.disabled = true;
-            }
-        }
-
-        async function generateKeyPair() {
-            const keyPair = await crypto.subtle.generateKey(
-                { name: "ECDH", namedCurve: "P-384" },
-                true,
-                ["deriveKey"]
-            );
-
-            const [privateKey, publicKey] = await Promise.all([
-                exportKey(keyPair.privateKey, "pkcs8"),
-                exportKey(keyPair.publicKey, "spki")
-            ]);
-
-            return { privateKey, publicKey };
-        }
-
-        async function exportKey(key, format) {
-            const exported = await crypto.subtle.exportKey(format, key);
-            return arrayToBase64(exported);
-        }
-
-        function getEndpoint() {
-            const select = document.getElementById('endpointSelect');
-            return select.value === 'custom' 
-                ? document.getElementById('customEndpoint').value 
-                : select.value;
-        }
-
-        function arrayToBase64(buffer) {
-            return btoa(String.fromCharCode(...new Uint8Array(buffer)))
-                .replace(/=/g, '')
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_');
-        }
-
-        function downloadConfig() {
-            if (!currentConfig) {
-                updateStatus('🔴 Нет конфигурации для скачивания');
-                return;
+                new QRCode(qrContainer, { text: state.config, width: 128, height: 128 });
+                document.body.appendChild(qrContainer);
+                setTimeout(() => qrContainer.remove(), 5000);
             }
 
-            const blob = new Blob([currentConfig], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'astracatwarp.conf';
-            a.click();
-            URL.revokeObjectURL(url);
-            updateStatus('🟢 Конфиг скачан');
-        }
-
-        function generateQR() {
-            if (!currentConfig) {
-                updateStatus('🔴 Нет конфигурации для QR-кода');
-                return;
+            function handleEndpointChange() {
+                elements.customEndpoint.style.display = 
+                    this.value === 'custom' ? 'block' : 'none';
             }
 
-            const qrContainer = document.createElement('div');
-            qrContainer.style.position = 'fixed';
-            qrContainer.style.bottom = '20px';
-            qrContainer.style.right = '20px';
-            qrContainer.style.background = 'white';
-            qrContainer.style.padding = '10px';
-            qrContainer.style.borderRadius = '8px';
+            function getEndpoint() {
+                return elements.endpointSelect.value === 'custom' 
+                    ? elements.customEndpoint.value 
+                    : elements.endpointSelect.value;
+            }
 
-            new QRCode(qrContainer, {
-                text: currentConfig,
-                width: 128,
-                height: 128
-            });
+            function resetCaptcha() {
+                turnstile.reset(elements.captchaContainer);
+                state.captcha = null;
+                elements.downloadBtn.disabled = true;
+            }
 
-            document.body.appendChild(qrContainer);
-            setTimeout(() => qrContainer.remove(), 5000);
-            updateStatus('🟢 QR-код создан');
-        }
+            function showError(message, field = 'general') {
+                const element = elements[`${field}Error`];
+                if (element) {
+                    element.textContent = message;
+                    element.style.display = 'block';
+                }
+            }
 
-        function updateStatus(message) {
-            document.getElementById('status').textContent = message;
-        }
+            function hideError(field) {
+                const element = elements[`${field}Error`];
+                if (element) element.style.display = 'none';
+            }
 
-        document.getElementById('endpointSelect').addEventListener('change', function() {
-            document.getElementById('customEndpoint').style.display = 
-                this.value === 'custom' ? 'block' : 'none';
-        });
+            function clearErrors() {
+                Object.values(elements).forEach(el => {
+                    if (el.id?.endsWith('Error')) el.style.display = 'none';
+                });
+            }
+
+            function showSuccess(message) {
+                elements.status.style.color = '#34d399';
+                elements.status.textContent = `🟢 ${message}`;
+            }
+
+            function showFatalError(message) {
+                document.body.innerHTML = `<div style="color: #f87171; padding: 2rem; text-align: center;">${message}</div>`;
+                throw new Error(message);
+            }
+
+            window.onload = init;
+        })();
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </body>
 </html>
