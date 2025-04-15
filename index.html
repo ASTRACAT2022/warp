@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstraConfig Pro</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: rgba(30, 41, 59, 0.8);
+            --primary: #818cf8;
+            --primary-hover: #6366f1;
+            --text: #f8fafc;
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+            background-image: radial-gradient(circle at 50% 50%, 
+                rgba(129, 140, 248, 0.1) 0%, 
+                transparent 60%);
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+        }
+
+        .sidebar {
+            background: var(--surface);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+        }
+
+        .editor-container {
+            background: var(--surface);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+        }
+
+        .config-editor {
+            width: 100%;
+            height: 600px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            resize: none;
+        }
+
+        button {
+            background: var(--primary);
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .cf-turnstile {
+            margin: 1rem 0;
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+
+        .status-bar {
+            margin-top: 1rem;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        select, input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .disclaimer {
+            font-size: 0.8em;
+            color: #94a3b8;
+            margin-top: 1.5rem;
+            padding: 0.5rem;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sidebar, .editor-container {
+            animation: fadeIn 0.4s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">🔒</div>
+                <h2>AstraConfig</h2>
+            </div>
+
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAABLgaFLEZGcqAM3Q"></div>
+
+            <select id="endpointSelect">
+                <option value="">Выберите сервер</option>
+                <option value="188.114.99.235:988">Токио (Япония)</option>
+                <option value="188.114.96.198:878">Лондон (Великобритания)</option>
+                <option value="custom">Другой сервер</option>
+            </select>
+
+            <input type="text" id="customEndpoint" placeholder="IP:Порт" style="display: none;">
+
+            <select id="dnsSelect">
+                <option value="85.209.2.112" selected>Стандартный DNS</option>
+                <option value="1.1.1.1,2606:4700:4700::1111">Cloudflare DNS</option>
+            </select>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+                <button onclick="handleGenerate()">🔄 Сгенерировать</button>
+                <button onclick="downloadConfig()">💾 Сохранить</button>
+                <button onclick="generateQR()">🔳 Показать QR</button>
+            </div>
+
+            <div class="disclaimer">
+                ⚠️ Смена сервера может не изменить ваше местоположение из-за особенностей маршрутизации VPN.
+            </div>
+
+            <div class="status-bar" id="status">🟢 Готово</div>
+        </aside>
+
+        <main class="editor-container">
+            <textarea class="config-editor" id="configEditor" spellcheck="false"></textarea>
+        </main>
+    </div>
+
+    <!-- Яндекс.Метрика -->
+    <script type="text/javascript" >
+       (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+       m[i].l=1*new Date();
+       for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+       k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+       (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+
+       ym(100530848, "init", {
+            clickmap:true,
+            trackLinks:true,
+            accurateTrackBounce:true,
+            webvisor:true
+       });
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/100530848" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+
+    <script>
+        let captchaToken = null;
+        const endpoints = [
+            '188.114.99.235:988',
+            '188.114.96.198:878',
+            '162.159.195.137:1018'
+        ];
+
+        turnstile.render('.cf-turnstile', {
+            sitekey: '0x4AAAAAABLgaFLEZGcqAM3Q',
+            theme: 'dark',
+            callback: (token) => {
+                captchaToken = token;
+                updateStatus('🟢 CAPTCHA пройдена');
+            },
+            'expired-callback': () => {
+                captchaToken = null;
+                updateStatus('🔴 CAPTCHA истекла');
+            }
+        });
+
+        async function handleGenerate() {
+            if (!captchaToken) {
+                updateStatus('🔴 Сначала пройдите CAPTCHA!');
+                return;
+            }
+
+            try {
+                const keys = await generateKeyPair();
+                const endpoint = getEndpoint();
+                const dns = document.getElementById('dnsSelect').value;
+
+                const config = `[Interface]
+PrivateKey = ${keys.privateKey}
+Address = 172.16.0.2/32
+DNS = ${dns}
+MTU = 1280
+
+[Peer]
+PublicKey = ${keys.publicKey}
+AllowedIPs = 0.0.0.0/0, ::/0
+Endpoint = ${endpoint}
+PersistentKeepalive = 25
+# Сгенерировано: ${new Date().toLocaleString('ru-RU')}`;
+
+                document.getElementById('configEditor').value = config;
+                updateStatus('🟢 Конфигурация создана');
+                turnstile.reset();
+                captchaToken = null;
+
+            } catch (error) {
+                updateStatus(`🔴 Ошибка: ${error.message}`);
+            }
+        }
+
+        async function generateKeyPair() {
+            const keyPair = await crypto.subtle.generateKey(
+                { name: "ECDH", namedCurve: "P-384" },
+                true,
+                ["deriveKey"]
+            );
+
+            const [privateKey, publicKey] = await Promise.all([
+                exportKey(keyPair.privateKey, "pkcs8"),
+                exportKey(keyPair.publicKey, "spki")
+            ]);
+
+            return { privateKey, publicKey };
+        }
+
+        async function exportKey(key, format) {
+            const exported = await crypto.subtle.exportKey(format, key);
+            return arrayToBase64(exported);
+        }
+
+        function getEndpoint() {
+            const select = document.getElementById('endpointSelect');
+            if (select.value === 'custom') {
+                return document.getElementById('customEndpoint').value;
+            }
+            return select.value;
+        }
+
+        function arrayToBase64(buffer) {
+            return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+                .replace(/=/g, '')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_');
+        }
+
+        function downloadConfig() {
+            const config = document.getElementById('configEditor').value;
+            if (!config) return;
+
+            const blob = new Blob([config], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'astracatwarp.conf';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function generateQR() {
+            const config = document.getElementById('configEditor').value;
+            if (!config) return;
+
+            const qrContainer = document.createElement('div');
+            qrContainer.style.position = 'fixed';
+            qrContainer.style.bottom = '20px';
+            qrContainer.style.right = '20px';
+            qrContainer.style.background = 'white';
+            qrContainer.style.padding = '10px';
+            qrContainer.style.borderRadius = '8px';
+
+            new QRCode(qrContainer, {
+                text: config,
+                width: 128,
+                height: 128
+            });
+
+            document.body.appendChild(qrContainer);
+            setTimeout(() => qrContainer.remove(), 5000);
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        document.getElementById('endpointSelect').addEventListener('change', function() {
+            document.getElementById('customEndpoint').style.display = 
+                this.value === 'custom' ? 'block' : 'none';
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</body>
+</html>
