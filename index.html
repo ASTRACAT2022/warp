@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AstraConfig Pro</title>
+    <title>AstraCatWarp Config Generator</title>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
             --bg: #0f172a;
@@ -59,7 +60,7 @@
 
         .config-editor {
             width: 100%;
-            height: 500px;
+            height: 300px;
             background: rgba(15, 23, 42, 0.6);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 1rem;
@@ -67,28 +68,29 @@
             color: var(--text);
             font-family: 'JetBrains Mono', monospace;
             resize: none;
+            margin: 1rem 0;
         }
 
-        .endpoint-list {
+        .endpoint-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 0.5rem;
             margin: 1rem 0;
         }
 
-        .endpoint-item {
-            padding: 0.5rem;
+        .endpoint-card {
+            padding: 1rem;
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 0.5rem;
             cursor: pointer;
             transition: 0.3s;
         }
 
-        .endpoint-item:hover {
+        .endpoint-card:hover {
             border-color: var(--primary);
         }
 
-        .endpoint-item.active {
+        .endpoint-card.active {
             border-color: var(--primary);
             background: rgba(129, 140, 248, 0.1);
         }
@@ -101,8 +103,18 @@
             border-radius: 0.5rem;
             cursor: pointer;
             transition: 0.3s;
-            width: 100%;
             margin: 0.5rem 0;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
         }
 
         .status {
@@ -119,7 +131,7 @@
 <body>
     <div class="auth-screen" id="authScreen">
         <div class="auth-content">
-            <h1>🔒 AstraConfig</h1>
+            <h1>🔒 AstraCatWarp</h1>
             <p>Пройдите проверку для доступа</p>
             <div id="captchaContainer" class="cf-turnstile"></div>
             <div id="captchaError" class="error status" style="display: none;"></div>
@@ -128,21 +140,24 @@
 
     <div class="main-content" id="mainContent">
         <div style="max-width: 800px; margin: 0 auto;">
-            <div style="margin-bottom: 2rem;">
+            <div class="endpoint-grid" id="endpointGrid"></div>
+            
+            <div>
+                <label>DNS сервер:</label>
                 <select id="dnsSelect">
-                    <option value="85.209.2.112" selected>Default DNS (85.209.2.112)</option>
-                    <option value="1.1.1.1">Cloudflare DNS</option>
-                    <option value="8.8.8.8">Google DNS</option>
+                    <option value="85.209.2.112" selected>Default (85.209.2.112)</option>
+                    <option value="1.1.1.1">Cloudflare</option>
+                    <option value="8.8.8.8">Google</option>
                 </select>
             </div>
 
-            <div class="endpoint-list" id="endpointList"></div>
-            
-            <button id="generateBtn" onclick="generateConfig()" disabled>🔄 Сгенерировать</button>
-            <button id="downloadBtn" onclick="downloadConfig()" disabled>💾 Скачать конфиг</button>
-            
+            <div class="toolbar">
+                <button id="generateBtn" onclick="generateConfig()" disabled>🔄 Сгенерировать</button>
+                <button id="downloadBtn" onclick="downloadConfig()" disabled>💾 Скачать конфиг</button>
+                <button id="qrBtn" onclick="downloadQR()" disabled>🔳 Скачать QR</button>
+            </div>
+
             <textarea class="config-editor" id="configEditor"></textarea>
-            
             <div id="status" class="status"></div>
         </div>
     </div>
@@ -151,6 +166,7 @@
         let isVerified = false;
         let currentConfig = null;
         let selectedEndpoint = '';
+        let qrCodeInstance = null;
 
         const endpoints = [
             '188.114.99.235:988',
@@ -168,19 +184,19 @@
         ];
 
         function initEndpoints() {
-            const container = document.getElementById('endpointList');
+            const grid = document.getElementById('endpointGrid');
             endpoints.forEach(endpoint => {
-                const div = document.createElement('div');
-                div.className = 'endpoint-item';
-                div.textContent = endpoint;
-                div.onclick = () => selectEndpoint(endpoint, div);
-                container.appendChild(div);
+                const card = document.createElement('div');
+                card.className = 'endpoint-card';
+                card.textContent = endpoint;
+                card.onclick = () => selectEndpoint(endpoint, card);
+                grid.appendChild(card);
             });
         }
 
         function selectEndpoint(endpoint, element) {
-            document.querySelectorAll('.endpoint-item').forEach(item => {
-                item.classList.remove('active');
+            document.querySelectorAll('.endpoint-card').forEach(card => {
+                card.classList.remove('active');
             });
             element.classList.add('active');
             selectedEndpoint = endpoint;
@@ -229,6 +245,7 @@ Endpoint = ${selectedEndpoint}`;
 
                 document.getElementById('configEditor').value = currentConfig;
                 document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('qrBtn').disabled = false;
                 showStatus('Конфигурация создана!', 'success');
             } catch (error) {
                 showStatus(error.message, 'error');
@@ -243,10 +260,31 @@ Endpoint = ${selectedEndpoint}`;
             const a = document.createElement('a');
             
             a.href = url;
-            a.download = 'astraconfig.conf';
+            a.download = 'astracatwarp.conf';
             a.click();
             
             URL.revokeObjectURL(url);
+        }
+
+        function downloadQR() {
+            if (!currentConfig) return;
+            
+            const qrContainer = document.createElement('div');
+            new QRCode(qrContainer, {
+                text: currentConfig,
+                width: 256,
+                height: 256,
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            setTimeout(() => {
+                const canvas = qrContainer.querySelector('canvas');
+                const url = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'astracatwarp.png';
+                a.click();
+            }, 100);
         }
 
         function arrayToBase64(buffer) {
