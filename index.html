@@ -69,6 +69,30 @@
             resize: none;
         }
 
+        .endpoint-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .endpoint-item {
+            padding: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .endpoint-item:hover {
+            border-color: var(--primary);
+        }
+
+        .endpoint-item.active {
+            border-color: var(--primary);
+            background: rgba(129, 140, 248, 0.1);
+        }
+
         button {
             background: var(--primary);
             color: white;
@@ -79,11 +103,6 @@
             transition: 0.3s;
             width: 100%;
             margin: 0.5rem 0;
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
         }
 
         .status {
@@ -98,7 +117,6 @@
     </style>
 </head>
 <body>
-    <!-- Экран проверки -->
     <div class="auth-screen" id="authScreen">
         <div class="auth-content">
             <h1>🔒 AstraConfig</h1>
@@ -108,22 +126,18 @@
         </div>
     </div>
 
-    <!-- Основной интерфейс -->
     <div class="main-content" id="mainContent">
         <div style="max-width: 800px; margin: 0 auto;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
-                <select id="endpointSelect">
-                    <option value="">Выберите сервер</option>
-                    <option value="tokyo">Токио, Япония</option>
-                    <option value="london">Лондон, UK</option>
-                </select>
-                
+            <div style="margin-bottom: 2rem;">
                 <select id="dnsSelect">
+                    <option value="85.209.2.112" selected>Default DNS (85.209.2.112)</option>
                     <option value="1.1.1.1">Cloudflare DNS</option>
                     <option value="8.8.8.8">Google DNS</option>
                 </select>
             </div>
 
+            <div class="endpoint-list" id="endpointList"></div>
+            
             <button id="generateBtn" onclick="generateConfig()" disabled>🔄 Сгенерировать</button>
             <button id="downloadBtn" onclick="downloadConfig()" disabled>💾 Скачать конфиг</button>
             
@@ -136,24 +150,42 @@
     <script>
         let isVerified = false;
         let currentConfig = null;
+        let selectedEndpoint = '';
 
-        // Инициализация CAPTCHA
-        function initCaptcha() {
-            turnstile.render('#captchaContainer', {
-                sitekey: '0x4AAAAAABLgaFLEZGcqAM3Q',
-                theme: 'dark',
-                callback: (token) => {
-                    isVerified = true;
-                    document.getElementById('authScreen').style.display = 'none';
-                    document.getElementById('mainContent').style.display = 'block';
-                    document.getElementById('generateBtn').disabled = false;
-                },
-                'error-callback': () => showError('Ошибка проверки CAPTCHA'),
-                'expired-callback': () => showError('Сессия истекла')
+        const endpoints = [
+            '188.114.99.235:988',
+            '188.114.96.198:878',
+            '188.114.97.135:1387',
+            '188.114.96.57:3476',
+            '188.114.98.160:8854',
+            '188.114.99.48:4177',
+            '188.114.97.230:7103',
+            '188.114.97.4:4500',
+            '162.159.195.137:1018',
+            '162.159.192.178:4500',
+            '162.159.195.159:5279',
+            '162.159.195.107:4500'
+        ];
+
+        function initEndpoints() {
+            const container = document.getElementById('endpointList');
+            endpoints.forEach(endpoint => {
+                const div = document.createElement('div');
+                div.className = 'endpoint-item';
+                div.textContent = endpoint;
+                div.onclick = () => selectEndpoint(endpoint, div);
+                container.appendChild(div);
             });
         }
 
-        // Генерация ключей
+        function selectEndpoint(endpoint, element) {
+            document.querySelectorAll('.endpoint-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            selectedEndpoint = endpoint;
+        }
+
         async function generateKeyPair() {
             try {
                 const keyPair = await crypto.subtle.generateKey(
@@ -176,13 +208,12 @@
             }
         }
 
-        // Генерация конфига
         async function generateConfig() {
             try {
                 if (!isVerified) throw new Error('Сначала пройдите проверку');
+                if (!selectedEndpoint) throw new Error('Выберите эндпоинт');
                 
                 const keys = await generateKeyPair();
-                const endpoint = document.getElementById('endpointSelect').value;
                 const dns = document.getElementById('dnsSelect').value;
 
                 currentConfig = `[Interface]
@@ -194,7 +225,7 @@ MTU = 1280
 [Peer]
 PublicKey = ${keys.publicKey}
 AllowedIPs = 0.0.0.0/0
-Endpoint = ${endpoint}.astra-vpn.com:51820`;
+Endpoint = ${selectedEndpoint}`;
 
                 document.getElementById('configEditor').value = currentConfig;
                 document.getElementById('downloadBtn').disabled = false;
@@ -204,7 +235,6 @@ Endpoint = ${endpoint}.astra-vpn.com:51820`;
             }
         }
 
-        // Скачивание конфига
         function downloadConfig() {
             if (!currentConfig) return;
             
@@ -219,7 +249,6 @@ Endpoint = ${endpoint}.astra-vpn.com:51820`;
             URL.revokeObjectURL(url);
         }
 
-        // Вспомогательные функции
         function arrayToBase64(buffer) {
             return btoa(String.fromCharCode(...new Uint8Array(buffer)))
                 .replace(/=/g, '')
@@ -233,13 +262,25 @@ Endpoint = ${endpoint}.astra-vpn.com:51820`;
             status.textContent = message;
         }
 
-        // Инициализация
         window.onload = () => {
             if (!window.crypto?.subtle) {
                 showStatus('Требуется современный браузер', 'error');
                 return;
             }
-            initCaptcha();
+            
+            turnstile.render('#captchaContainer', {
+                sitekey: '0x4AAAAAABLgaFLEZGcqAM3Q',
+                theme: 'dark',
+                callback: (token) => {
+                    isVerified = true;
+                    document.getElementById('authScreen').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                    document.getElementById('generateBtn').disabled = false;
+                    initEndpoints();
+                },
+                'error-callback': () => showStatus('Ошибка проверки CAPTCHA', 'error'),
+                'expired-callback': () => showStatus('Сессия истекла', 'error')
+            });
         };
     </script>
 </body>
