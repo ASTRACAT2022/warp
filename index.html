@@ -35,7 +35,6 @@
                 transparent 60%);
         }
 
-        /* Страница входа */
         .login-container {
             max-width: 400px;
             margin: 5rem auto;
@@ -66,7 +65,6 @@
             font-size: 1.5rem;
         }
 
-        /* Основной контент */
         .main-content {
             display: none;
             padding: 2rem;
@@ -154,14 +152,13 @@
             opacity: 0.8;
         }
 
-        input, select, .dns-selector {
+        input, select {
             width: 100%;
             padding: 0.75rem;
             border-radius: 0.75rem;
             border: 1px solid var(--glass-border);
             background: rgba(255, 255, 255, 0.05);
             color: var(--text);
-            margin-bottom: 0.5rem;
         }
 
         .dns-options {
@@ -184,33 +181,30 @@
             background: rgba(129, 140, 248, 0.1);
         }
 
-        .endpoint-grid {
+        .params-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
-            margin: 1rem 0;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
         }
 
-        .endpoint-item {
-            padding: 0.5rem;
-            border-radius: 0.5rem;
+        #configEditor {
+            width: 100%;
+            height: 200px;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
             border: 1px solid var(--glass-border);
-            cursor: pointer;
-            text-align: center;
-            font-size: 0.9em;
+            border-radius: 0.75rem;
+            color: var(--text);
+            font-family: monospace;
         }
 
-        .endpoint-item.active {
-            border-color: var(--primary);
-        }
-
-        .warning {
-            color: var(--xray-color);
-            margin-bottom: 1rem;
-            text-align: center;
+        #status {
+            margin-top: 1rem;
             padding: 0.5rem;
             border-radius: 0.5rem;
-            background: rgba(245, 158, 11, 0.1);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         #captchaError {
@@ -218,14 +212,9 @@
             margin-top: 1rem;
             display: none;
         }
-
-        .cf-turnstile {
-            margin: 1rem 0;
-        }
     </style>
 </head>
 <body>
-    <!-- Страница с капчей -->
     <div class="login-container" id="loginPage">
         <div class="login-logo">
             <div class="login-logo-icon">🔒</div>
@@ -239,7 +228,6 @@
         <div id="captchaError">Ошибка проверки капчи. Попробуйте снова.</div>
     </div>
 
-    <!-- Основной контент -->
     <div class="main-content" id="mainContent">
         <div class="main-container">
             <aside class="sidebar">
@@ -248,19 +236,11 @@
                     <h2>AstraConfig</h2>
                 </div>
 
-                <button onclick="generateNewConfig()" id="generateBtn">
-                    🔄 Сгенерировать новый конфиг
-                </button>
-                <button onclick="downloadConfig()" id="downloadBtn">
-                    💾 Сохранить конфигурацию
-                </button>
-                <button onclick="importConfig()">
-                    📂 Импортировать конфиг
-                </button>
-                
-                <button class="xray-vpn" onclick="window.open('https://astracat2022.github.io/info/', '_blank')">
-                    🌐 Генератор Xray VPN
-                </button>
+                <button onclick="generateAutoConfig()">🎲 Авто-генерация</button>
+                <button onclick="generateNewConfig()">🔄 Сгенерировать новый</button>
+                <button onclick="downloadConfig()">💾 Сохранить конфиг</button>
+                <button onclick="importConfig()">📂 Импортировать конфиг</button>
+                <button onclick="window.open('https://astracat2022.github.io/info/', '_blank')">🌐 Генератор Xray VPN</button>
             </aside>
 
             <main class="editor-container">
@@ -271,32 +251,26 @@
                 <div class="form-group">
                     <label>Выберите DNS сервер:</label>
                     <div class="dns-options">
-                        <div class="dns-option active" data-dns="1.1.1.1, 2606:4700:4700::1111" onclick="selectDNS(this)">
-                            Cloudflare (1.1.1.1)
+                        <div class="dns-option active" data-dns="1.1.1.1, 2606:4700:4700::1111, 1.0.0.1, 2606:4700:4700::1001" onclick="selectDNS(this)">
+                            Cloudflare
                         </div>
                         <div class="dns-option" data-dns="85.209.2.112, 2a0d:4d00:80::112" onclick="selectDNS(this)">
-                            AltDNS (85.209.2.112)
+                            AltDNS
                         </div>
                     </div>
-                    <input type="text" id="customDNS" 
-                           placeholder="Или введите свой DNS" 
-                           onchange="updateDNS(this.value)">
-                </div>
-
-                <div class="form-group">
-                    <label>Выберите эндпоинт:</label>
-                    <div class="endpoint-grid" id="endpointGrid"></div>
-                    <input type="text" id="customEndpoint" 
-                           placeholder="Или введите свой IP:Порт" 
-                           onchange="updateEndpoint(this.value)">
+                    <input type="text" id="customDNS" placeholder="Или введите свой DNS" onchange="updateDNS(this.value)">
                 </div>
 
                 <div class="config-form">
                     <div class="form-section">
-                        <h3>Настройки интерфейса</h3>
+                        <h3>Основные настройки</h3>
                         <div class="form-group">
                             <label>Приватный ключ</label>
                             <input type="text" id="privateKey" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Публичный ключ</label>
+                            <input type="text" id="publicKey">
                         </div>
                         <div class="form-group">
                             <label>IPv4 адрес</label>
@@ -309,51 +283,73 @@
                     </div>
 
                     <div class="form-section">
-                        <h3>Настройки пира</h3>
+                        <h3>Параметры соединения</h3>
                         <div class="form-group">
-                            <label>Публичный ключ</label>
-                            <input type="text" id="publicKey">
-                        </div>
-                        <div class="form-group">
-                            <label>Разрешенные IP</label>
-                            <input type="text" id="allowedIPs" value="0.0.0.0/0, ::/0">
+                            <label>Эндпоинт</label>
+                            <input type="text" id="endpoint">
                         </div>
                         <div class="form-group">
                             <label>MTU</label>
                             <input type="number" id="mtu" value="1280">
                         </div>
+                        <div class="form-group">
+                            <label>AllowedIPs</label>
+                            <input type="text" id="allowedIPs" value="0.0.0.0/0, ::/0">
+                        </div>
                     </div>
                 </div>
 
-                <div class="editor-tools">
-                    <button onclick="applyEdits()">💾 Применить изменения</button>
-                    <button onclick="resetToOriginal()">🔄 Сброс</button>
+                <div class="advanced-settings">
+                    <h3>Дополнительные параметры</h3>
+                    <div class="params-grid">
+                        <div class="form-group">
+                            <label>S1</label>
+                            <input type="number" id="S1">
+                        </div>
+                        <div class="form-group">
+                            <label>S2</label>
+                            <input type="number" id="S2">
+                        </div>
+                        <div class="form-group">
+                            <label>Jc</label>
+                            <input type="number" id="Jc">
+                        </div>
+                        <div class="form-group">
+                            <label>Jmin</label>
+                            <input type="number" id="Jmin">
+                        </div>
+                        <div class="form-group">
+                            <label>Jmax</label>
+                            <input type="number" id="Jmax">
+                        </div>
+                        <div class="form-group">
+                            <label>H1</label>
+                            <input type="number" id="H1">
+                        </div>
+                        <div class="form-group">
+                            <label>H2</label>
+                            <input type="number" id="H2">
+                        </div>
+                        <div class="form-group">
+                            <label>H3</label>
+                            <input type="number" id="H3">
+                        </div>
+                        <div class="form-group">
+                            <label>H4</label>
+                            <input type="number" id="H4">
+                        </div>
+                    </div>
                 </div>
-                
+
                 <textarea class="config-editor" id="configEditor" spellcheck="false"></textarea>
                 <div class="status-bar" id="status">🟢 Готово</div>
             </main>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         let currentConfig = '';
-        let originalConfig = '';
-        let currentDNS = '1.1.1.1, 2606:4700:4700::1111';
-        let currentEndpoint = '188.114.97.66:3138';
-        let endpoints = [
-            '188.114.97.66:3138',
-            '188.114.96.177:7103',
-            '188.114.97.66:859',
-            '162.159.192.255:1010',
-            '188.114.97.251:7559',
-            '188.114.97.116:854',
-            '162.159.195.127:7559',
-            '162.159.192.86:8854',
-            '188.114.99.140:859',
-            '188.114.96.3:854'
-        ];
+        let currentDNS = '1.1.1.1, 2606:4700:4700::1111, 1.0.0.1, 2606:4700:4700::1001';
 
         // Капча
         function onCaptchaSuccess(token) {
@@ -367,128 +363,112 @@
             turnstile.reset();
         }
 
-        // Инициализация приложения
-        function initializeApp() {
-            initEndpoints();
-            generateNewConfig();
-            document.querySelectorAll('.config-form input').forEach(input => {
-                input.addEventListener('input', syncFormToEditor);
+        // Авто-генерация
+        function generateAutoConfig() {
+            const config = {
+                privateKey: 'nG4g5PM/uhTmg9y7X6VxTDcSw3R/aRfDCpIJpiZGb+Q=',
+                publicKey: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=',
+                ipv4: '172.16.0.2',
+                ipv6: '2606:4700:110:8d99:e87a:f430:749a:86dd',
+                endpoint: '188.114.97.198:1843',
+                S1: 0,
+                S2: 0,
+                Jc: 4,
+                Jmin: 40,
+                Jmax: 70,
+                H1: 1,
+                H2: 2,
+                H3: 3,
+                H4: 4
+            };
+
+            Object.entries(config).forEach(([key, value]) => {
+                document.getElementById(key).value = value;
             });
+            
+            updateConfig();
+            document.getElementById('status').textContent = '🟢 Авто-конфиг загружен';
         }
 
-        // Инициализация эндпоинтов
-        function initEndpoints() {
-            const grid = document.getElementById('endpointGrid');
-            endpoints.forEach((endpoint, index) => {
-                const item = document.createElement('div');
-                item.className = 'endpoint-item' + (index === 0 ? ' active' : '');
-                item.textContent = endpoint;
-                item.onclick = () => selectEndpoint(endpoint, item);
-                grid.appendChild(item);
-            });
-            currentEndpoint = endpoints[0];
-        }
-
-        // Выбор эндпоинта
-        function selectEndpoint(endpoint, element) {
-            document.querySelectorAll('.endpoint-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            element.classList.add('active');
-            currentEndpoint = endpoint;
-            syncFormToEditor();
-        }
-
-        // Выбор DNS
-        function selectDNS(element) {
-            document.querySelectorAll('.dns-option').forEach(item => {
-                item.classList.remove('active');
-            });
-            element.classList.add('active');
-            currentDNS = element.dataset.dns;
-            document.getElementById('customDNS').value = '';
-            syncFormToEditor();
-        }
-
-        // Обновление DNS
-        function updateDNS(value) {
-            currentDNS = value;
-            syncFormToEditor();
-        }
-
-        // Генерация конфига
+        // Случайная генерация
         function generateNewConfig() {
-            const privateKey = crypto.getRandomValues(new Uint8Array(32)).toString();
-            const publicKey = crypto.getRandomValues(new Uint8Array(32)).toString();
+            const genKey = () => btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
             
-            document.getElementById('privateKey').value = privateKey;
-            document.getElementById('publicKey').value = publicKey;
-            document.getElementById('ipv4').value = `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.1/24`;
-            document.getElementById('ipv6').value = `fd${Math.random().toString(16).substr(2, 4)}::1/64`;
+            document.getElementById('privateKey').value = genKey();
+            document.getElementById('publicKey').value = genKey();
+            document.getElementById('ipv4').value = `172.16.${Math.floor(Math.random() * 255)}.2`;
+            document.getElementById('ipv6').value = `2606:4700:110:8d99:${Math.random().toString(16).substr(2,4)}:${Math.random().toString(16).substr(2,4)}:${Math.random().toString(16).substr(2,4)}`;
             
-            syncFormToEditor();
+            ['S1', 'S2'].forEach(id => document.getElementById(id).value = 0);
+            ['Jc', 'Jmin', 'Jmax'].forEach((id, i) => document.getElementById(id).value = [4, 40, 70][i]);
+            ['H1', 'H2', 'H3', 'H4'].forEach((id, i) => document.getElementById(id).value = i + 1);
+            
+            updateConfig();
+            document.getElementById('status').textContent = '🟢 Новый конфиг сгенерирован';
         }
 
-        // Синхронизация формы с редактором
-        function syncFormToEditor() {
+        function updateConfig() {
             currentConfig = `[Interface]
 PrivateKey = ${document.getElementById('privateKey').value}
 Address = ${document.getElementById('ipv4').value}, ${document.getElementById('ipv6').value}
 DNS = ${currentDNS}
 MTU = ${document.getElementById('mtu').value}
+S1 = ${document.getElementById('S1').value}
+S2 = ${document.getElementById('S2').value}
+Jc = ${document.getElementById('Jc').value}
+Jmin = ${document.getElementById('Jmin').value}
+Jmax = ${document.getElementById('Jmax').value}
+H1 = ${document.getElementById('H1').value}
+H2 = ${document.getElementById('H2').value}
+H3 = ${document.getElementById('H3').value}
+H4 = ${document.getElementById('H4').value}
 
 [Peer]
 PublicKey = ${document.getElementById('publicKey').value}
 AllowedIPs = ${document.getElementById('allowedIPs').value}
-Endpoint = ${currentEndpoint}`;
+Endpoint = ${document.getElementById('endpoint').value}`;
 
             document.getElementById('configEditor').value = currentConfig;
         }
 
-        // Применение изменений
-        function applyEdits() {
-            try {
-                parseConfig(document.getElementById('configEditor').value);
-                document.getElementById('status').textContent = '🟢 Изменения применены';
-            } catch (e) {
-                document.getElementById('status').textContent = '🔴 Ошибка синтаксиса';
-            }
+        function selectDNS(element) {
+            document.querySelectorAll('.dns-option').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+            currentDNS = element.dataset.dns;
+            document.getElementById('customDNS').value = '';
+            updateConfig();
         }
 
-        // Парсинг конфига
+        function updateDNS(value) {
+            currentDNS = value;
+            updateConfig();
+        }
+
         function parseConfig(text) {
+            const getValue = (regex, part) => (part.match(regex) || [, ''])[1].trim();
+            
             const interfacePart = text.match(/\[Interface\](.*?)(?=\[Peer\]/gs)?.[1] || '';
             const peerPart = text.match(/\[Peer\](.*)/gs)?.[1] || '';
 
-            const getValue = (regex, part) => part.match(regex)?.[1]?.trim() || '';
-
+            // Interface
             document.getElementById('privateKey').value = getValue(/PrivateKey\s*=\s*(.+)/, interfacePart);
             document.getElementById('ipv4').value = getValue(/Address\s*=\s*([^,]+)/, interfacePart);
             document.getElementById('ipv6').value = getValue(/Address\s*=\s*[^,]+,?\s*(.+)/, interfacePart);
-            document.getElementById('mtu').value = getValue(/MTU\s*=\s*(\d+)/, interfacePart) || '1280';
-            
+            document.getElementById('mtu').value = getValue(/MTU\s*=\s*(\d+)/, interfacePart) || 1280;
+
+            // Доп параметры
+            ['S1', 'S2', 'Jc', 'Jmin', 'Jmax', 'H1', 'H2', 'H3', 'H4'].forEach(param => {
+                document.getElementById(param).value = getValue(new RegExp(`${param}\\s*=\\s*(\\d+)`), interfacePart);
+            });
+
+            // Peer
             document.getElementById('publicKey').value = getValue(/PublicKey\s*=\s*(.+)/, peerPart);
             document.getElementById('allowedIPs').value = getValue(/AllowedIPs\s*=\s*(.+)/, peerPart);
-            
-            const dns = getValue(/DNS\s*=\s*(.+)/, interfacePart);
-            if(dns) {
-                const presetDNS = document.querySelector(`.dns-option[data-dns="${dns}"]`);
-                if(presetDNS) {
-                    selectDNS(presetDNS);
-                } else {
-                    document.getElementById('customDNS').value = dns;
-                    updateDNS(dns);
-                }
-            }
+            document.getElementById('endpoint').value = getValue(/Endpoint\s*=\s*(.+)/, peerPart);
+
+            updateConfig();
         }
 
-        // Сброс настроек
-        function resetToOriginal() {
-            document.getElementById('configEditor').value = originalConfig;
-            parseConfig(originalConfig);
-        }
-
-        // Загрузка конфига
         function downloadConfig() {
             const element = document.createElement('a');
             element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(currentConfig));
@@ -496,32 +476,25 @@ Endpoint = ${currentEndpoint}`;
             element.click();
         }
 
-        // Импорт конфига
         function importConfig() {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.conf';
-            
             input.onchange = e => {
                 const file = e.target.files[0];
                 const reader = new FileReader();
-                
-                reader.onload = e => {
-                    originalConfig = e.target.result;
-                    parseConfig(originalConfig);
-                    syncFormToEditor();
-                };
-                
+                reader.onload = e => parseConfig(e.target.result);
                 reader.readAsText(file);
             };
-            
             input.click();
         }
 
-        // Инициализация при загрузке
-        document.addEventListener('DOMContentLoaded', () => {
-            turnstile.init();
-        });
+        function initializeApp() {
+            document.querySelectorAll('input').forEach(input => input.addEventListener('input', updateConfig));
+            generateAutoConfig();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => turnstile.init());
     </script>
 </body>
 </html>
