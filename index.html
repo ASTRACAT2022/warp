@@ -142,6 +142,28 @@
         .sidebar, .editor-container {
             animation: fadeIn 0.4s ease;
         }
+
+        /* Стили для кнопки Telegram */
+        .telegram-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #2AABEE;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .telegram-button:hover {
+            transform: translateY(-2px);
+            background: #229ED9;
+        }
     </style>
 </head>
 <body>
@@ -170,8 +192,8 @@
 
             <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
                 <button onclick="handleGenerate()">🔄 Сгенерировать</button>
-                <button onclick="downloadConfig()">💾 Сохранить</button>
-                <button onclick="generateQR()">🔳 Показать QR</button>
+                <button onclick="downloadConfig()" id="downloadBtn" disabled>💾 Скачать</button>
+                <button onclick="generateQR()">🔳 QR-код</button>
             </div>
 
             <div class="disclaimer">
@@ -185,6 +207,14 @@
             <textarea class="config-editor" id="configEditor" spellcheck="false"></textarea>
         </main>
     </div>
+
+    <!-- Кнопка Telegram -->
+    <a href="https://t.me/astracatui" class="telegram-button" target="_blank">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.643-.203-.658-.644.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+        </svg>
+        Наш Telegram
+    </a>
 
     <!-- Яндекс.Метрика -->
     <script type="text/javascript" >
@@ -205,11 +235,8 @@
 
     <script>
         let captchaToken = null;
-        const endpoints = [
-            '188.114.99.235:988',
-            '188.114.96.198:878',
-            '162.159.195.137:1018'
-        ];
+        let currentConfig = '';
+        const downloadBtn = document.getElementById('downloadBtn');
 
         turnstile.render('.cf-turnstile', {
             sitekey: '0x4AAAAAABLgaFLEZGcqAM3Q',
@@ -217,10 +244,12 @@
             callback: (token) => {
                 captchaToken = token;
                 updateStatus('🟢 CAPTCHA пройдена');
+                downloadBtn.disabled = false;
             },
             'expired-callback': () => {
                 captchaToken = null;
                 updateStatus('🔴 CAPTCHA истекла');
+                downloadBtn.disabled = true;
             }
         });
 
@@ -235,7 +264,7 @@
                 const endpoint = getEndpoint();
                 const dns = document.getElementById('dnsSelect').value;
 
-                const config = `[Interface]
+                currentConfig = `[Interface]
 PrivateKey = ${keys.privateKey}
 Address = 172.16.0.2/32
 DNS = ${dns}
@@ -248,13 +277,15 @@ Endpoint = ${endpoint}
 PersistentKeepalive = 25
 # Сгенерировано: ${new Date().toLocaleString('ru-RU')}`;
 
-                document.getElementById('configEditor').value = config;
+                document.getElementById('configEditor').value = currentConfig;
+                downloadBtn.disabled = false;
                 updateStatus('🟢 Конфигурация создана');
                 turnstile.reset();
                 captchaToken = null;
 
             } catch (error) {
                 updateStatus(`🔴 Ошибка: ${error.message}`);
+                downloadBtn.disabled = true;
             }
         }
 
@@ -280,10 +311,9 @@ PersistentKeepalive = 25
 
         function getEndpoint() {
             const select = document.getElementById('endpointSelect');
-            if (select.value === 'custom') {
-                return document.getElementById('customEndpoint').value;
-            }
-            return select.value;
+            return select.value === 'custom' 
+                ? document.getElementById('customEndpoint').value 
+                : select.value;
         }
 
         function arrayToBase64(buffer) {
@@ -294,21 +324,26 @@ PersistentKeepalive = 25
         }
 
         function downloadConfig() {
-            const config = document.getElementById('configEditor').value;
-            if (!config) return;
+            if (!currentConfig) {
+                updateStatus('🔴 Нет конфигурации для скачивания');
+                return;
+            }
 
-            const blob = new Blob([config], { type: 'text/plain' });
+            const blob = new Blob([currentConfig], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'astracatwarp.conf';
             a.click();
             URL.revokeObjectURL(url);
+            updateStatus('🟢 Конфиг скачан');
         }
 
         function generateQR() {
-            const config = document.getElementById('configEditor').value;
-            if (!config) return;
+            if (!currentConfig) {
+                updateStatus('🔴 Нет конфигурации для QR-кода');
+                return;
+            }
 
             const qrContainer = document.createElement('div');
             qrContainer.style.position = 'fixed';
@@ -319,13 +354,14 @@ PersistentKeepalive = 25
             qrContainer.style.borderRadius = '8px';
 
             new QRCode(qrContainer, {
-                text: config,
+                text: currentConfig,
                 width: 128,
                 height: 128
             });
 
             document.body.appendChild(qrContainer);
             setTimeout(() => qrContainer.remove(), 5000);
+            updateStatus('🟢 QR-код создан');
         }
 
         function updateStatus(message) {
