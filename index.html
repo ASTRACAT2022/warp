@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>AstraCatWarp — Проверка</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <style>
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+    }
+
+    .captcha-box {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="captcha-box">
+    <h1>Пожалуйста, пройдите проверку</h1>
+    <div class="cf-turnstile"
+         data-sitekey="0x4AAAAAABLgaFLEZGcqAM3Q"
+         data-callback="onCaptchaSuccess">
+    </div>
+  </div>
+
+  <script>
+    function onCaptchaSuccess(token) {
+      // редирект после успешной капчи
+      window.location.href = "generator.html";
+    }
+  </script>
+</body>
+</html>
