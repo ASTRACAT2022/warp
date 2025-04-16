@@ -305,7 +305,7 @@ Endpoint = ${config.endpoint}`;
       const blob = new Blob([currentConfig], { type: 'text/plain' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'config.conf';
+      link.download = 'astracatwarp.conf';  // Название файла изменено
       link.click();
     }
 
@@ -341,4 +341,5 @@ Endpoint = ${config.endpoint}`;
   </script>
 </body>
 </html>
+
 
