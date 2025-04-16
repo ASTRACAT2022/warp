@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AstraCatWarp Editor</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: rgba(30, 41, 59, 0.9);
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --text: #f8fafc;
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      --error: #ef4444;
+      --success: #10b981;
+      --xray-color: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image: radial-gradient(circle at 50% 50%, rgba(129, 140, 248, 0.1) 0%, transparent 60%);
+      padding: 2rem;
+    }
+
+    .header {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .form-section, .editor-container {
+      background: var(--surface);
+      border-radius: 1rem;
+      padding: 2rem;
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+
+    label {
+      font-size: 0.9em;
+      opacity: 0.9;
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.6rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 0.5rem;
+      border: 1px solid var(--glass-border);
+      padding: 1rem;
+      color: var(--text);
+      font-family: monospace;
+      resize: vertical;
+    }
+
+    button {
+      background: var(--primary);
+      color: var(--text);
+      border: none;
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 1rem;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    .status {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      padding: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.5rem;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">AstraCatWarpEditor</div>
+  <div class="main-container">
+    <div class="form-section">
+      <div class="form-grid">
+        <div><label>Private Key</label><input id="privateKey" readonly></div>
+        <div><label>Public Key</label><input id="publicKey" readonly></div>
+        <div><label>DNS</label><input id="dns" value="85.209.2.112"></div>
+        <div><label>IPv4</label><input id="ipv4" readonly></div>
+        <div><label>IPv6</label><input id="ipv6" readonly></div>
+        <div><label>MTU</label><input type="number" id="mtu" value="1280"></div>
+        <div><label>Endpoint</label><input id="endpoint"></div>
+        <div><label>S1</label><input id="s1" value="0"></div>
+        <div><label>S2</label><input id="s2" value="0"></div>
+        <div><label>Jc</label><input id="jc" value="4"></div>
+        <div><label>Jmin</label><input id="jmin" value="40"></div>
+        <div><label>Jmax</label><input id="jmax" value="70"></div>
+        <div><label>H1</label><input id="h1" value="1"></div>
+        <div><label>H2</label><input id="h2" value="2"></div>
+        <div><label>H3</label><input id="h3" value="3"></div>
+        <div><label>H4</label><input id="h4" value="4"></div>
+      </div>
+      <div class="button-row">
+        <button onclick="generateAutoConfig()">🎲 Автогенерация</button>
+        <button onclick="downloadConfig()">💾 Скачать</button>
+        <button onclick="resetConfig()">🔄 Сброс</button>
+        <button onclick="location.href='https://astracat2022.github.io/info'">🧩 Генерация XRAY</button>
+      </div>
+    </div>
+    <div class="editor-container">
+      <textarea id="configEditor" spellcheck="false"></textarea>
+      <div id="status" class="status">🟢 Готов к работе</div>
+    </div>
+  </div>
+
+  <script>
+    let currentConfig = '';
+    const endpoints = [
+      "188.114.99.235:988", "188.114.96.198:878", "188.114.97.135:1387", "188.114.96.57:3476",
+      "188.114.98.160:8854", "188.114.99.48:4177", "188.114.97.230:7103", "188.114.97.4:4500",
+      "162.159.195.137:1018", "162.159.192.178:4500", "162.159.195.159:5279", "162.159.195.107:4500"
+    ];
+
+    function generateKeys() {
+      const privateKey = window.crypto.getRandomValues(new Uint8Array(32));
+      const publicKey = window.crypto.getRandomValues(new Uint8Array(32));
+      return {
+        privateKey: btoa(String.fromCharCode(...privateKey)),
+        publicKey: btoa(String.fromCharCode(...publicKey))
+      };
+    }
+
+    function generateRandomIPv4() {
+      return `172.16.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+    }
+
+    function generateRandomIPv6() {
+      const segment = () => Math.floor(Math.random() * 65535).toString(16);
+      return `2606:4700:110:${segment()}::${segment()}`;
+    }
+
+    function updateFormFields(config) {
+      for (const key in config) {
+        const el = document.getElementById(key);
+        if (el) el.value = config[key];
+      }
+    }
+
+    function buildConfigString(config) {
+      return `[Interface]
+PrivateKey = ${config.privateKey}
+S1 = ${config.s1}
+S2 = ${config.s2}
+Jc = ${config.jc}
+Jmin = ${config.jmin}
+Jmax = ${config.jmax}
+H1 = ${config.h1}
+H2 = ${config.h2}
+H3 = ${config.h3}
+H4 = ${config.h4}
+MTU = ${config.mtu}
+Address = ${config.ipv4}, ${config.ipv6}
+DNS = ${config.dns}
+
+[Peer]
+PublicKey = ${config.publicKey}
+AllowedIPs = 0.0.0.0/0, ::/0
+Endpoint = ${config.endpoint}`;
+    }
+
+    function generateAutoConfig() {
+      const keys = generateKeys();
+      const config = {
+        privateKey: keys.privateKey,
+        publicKey: keys.publicKey,
+        ipv4: generateRandomIPv4(),
+        ipv6: generateRandomIPv6(),
+        dns: document.getElementById('dns').value,
+        mtu: document.getElementById('mtu').value,
+        endpoint: endpoints[Math.floor(Math.random() * endpoints.length)],
+        s1: document.getElementById('s1').value,
+        s2: document.getElementById('s2').value,
+        jc: document.getElementById('jc').value,
+        jmin: document.getElementById('jmin').value,
+        jmax: document.getElementById('jmax').value,
+        h1: document.getElementById('h1').value,
+        h2: document.getElementById('h2').value,
+        h3: document.getElementById('h3').value,
+        h4: document.getElementById('h4').value
+      };
+      updateFormFields(config);
+      currentConfig = buildConfigString(config);
+      document.getElementById('configEditor').value = currentConfig;
+      document.getElementById('status').textContent = '✅ Конфиг сгенерирован';
+    }
+
+    function downloadConfig() {
+      const blob = new Blob([currentConfig], {type: 'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `astracatwarp-${Date.now()}.conf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function resetConfig() {
+      document.getElementById('configEditor').value = '';
+      generateAutoConfig();
+    }
+
+    window.addEventListener('DOMContentLoaded', generateAutoConfig);
+  </script>
+</body>
+</html>
