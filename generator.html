@@ -181,9 +181,8 @@
         <div class="config-form">
           <div class="form-group"><label>Private Key</label><input id="privateKey" readonly></div>
           <div class="form-group"><label>Public Key</label><input id="publicKey" readonly value="bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="></div>
-          <div class="form-group"><label>DNS</label><input id="dns" value="85.209.2.112"></div>
-          <div class="form-group"><label>IPv4</label><input id="ipv4" readonly></div>
-          <div class="form-group"><label>IPv6</label><input id="ipv6" readonly></div>
+          <div class="form-group"><label>IPv4</label><input id="ipv4" readonly value="172.16.0.2"></div>
+          <div class="form-group"><label>IPv6</label><input id="ipv6" readonly value="2606:4700:110:8f9c:6051:85c2:19a4:ef13"></div>
           <div class="form-group"><label>MTU</label><input type="number" id="mtu" value="1280"></div>
           <div class="form-group"><label>S1</label><input id="s1" value="0"></div>
           <div class="form-group"><label>S2</label><input id="s2" value="0"></div>
@@ -200,6 +199,14 @@
             <select id="endpointSelector">
               <option value="engage.cloudflareclient.com:2408">engage.cloudflareclient.com:2408</option>
               <option value="random">Сгенерировать случайный IP</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Выберите DNS</label>
+            <select id="dnsSelector">
+              <option value="1.1.1.1, 2606:4700:4700::1111, 1.0.0.1, 2606:4700:4700::1001">Cloudflare DNS (1.1.1.1)</option>
+              <option value="85.209.2.112">AstraCat DNS (85.209.2.112)</option>
             </select>
           </div>
         </div>
@@ -224,24 +231,33 @@
       "162.159.195.137:1018",
       "162.159.192.178:4500",
       "162.159.195.159:5279",
-      "162.159.195.107:4500",
       "162.159.195.107:4500"
     ];
 
-    function generateRandomIPv4() {
-      return `172.16.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
-    }
+    function generateAutoConfig() {
+      const config = {
+        privateKey: "mIk2nsGpeBbECjw1ZPo+svm2maj5VAwue0fG/oJ8Bwk=",
+        publicKey: "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+        dns: document.getElementById("dnsSelector").value,
+        ipv4: "172.16.0.2",
+        ipv6: "2606:4700:110:8f9c:6051:85c2:19a4:ef13",
+        mtu: "1280",
+        s1: "0",
+        s2: "0",
+        jc: "4",
+        jmin: "40",
+        jmax: "70",
+        h1: "1",
+        h2: "2",
+        h3: "3",
+        h4: "4",
+        endpoint: document.getElementById("endpointSelector").value === "random" ? getRandomEndpoint() : "engage.cloudflareclient.com:2408"
+      };
 
-    function generateRandomIPv6() {
-      const segment = () => Math.floor(Math.random() * 65535).toString(16);
-      return `2606:4700:110:${segment()}::${segment()}`;
-    }
-
-    function updateFormFields(config) {
-      for (const key in config) {
-        const el = document.getElementById(key);
-        if (el) el.value = config[key];
-      }
+      currentConfig = buildConfigString(config);
+      updateFormFields(config);
+      document.getElementById('configEditor').value = currentConfig;
+      document.getElementById('status').textContent = "🟢 Конфиг готов";
     }
 
     function buildConfigString(config) {
@@ -266,55 +282,31 @@ AllowedIPs = 0.0.0.0/0, ::/0
 Endpoint = ${config.endpoint}`;
     }
 
-    function generateAutoConfig() {
-      const publicKey = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=";
-      const selectedEndpoint = document.getElementById('endpointSelector').value === "random" ? endpoints[Math.floor(Math.random() * endpoints.length)] : "engage.cloudflareclient.com:2408";
-      const config = {
-        privateKey: btoa(String.fromCharCode(...window.crypto.getRandomValues(new Uint8Array(32)))),
-        publicKey: publicKey,
-        ipv4: generateRandomIPv4(),
-        ipv6: generateRandomIPv6(),
-        dns: document.getElementById('dns').value,
-        mtu: document.getElementById('mtu').value,
-        endpoint: selectedEndpoint,
-        s1: document.getElementById('s1').value,
-        s2: document.getElementById('s2').value,
-        jc: document.getElementById('jc').value,
-        jmin: document.getElementById('jmin').value,
-        jmax: document.getElementById('jmax').value,
-        h1: document.getElementById('h1').value,
-        h2: document.getElementById('h2').value,
-        h3: document.getElementById('h3').value,
-        h4: document.getElementById('h4').value
-      };
+    function getRandomEndpoint() {
+      const randomIndex = Math.floor(Math.random() * endpoints.length);
+      return endpoints[randomIndex];
+    }
 
-      currentConfig = buildConfigString(config);
-      updateFormFields(config);
-      document.getElementById('configEditor').value = currentConfig;
-      document.getElementById('status').textContent = "🟢 Конфиг готов";
+    function updateFormFields(config) {
+      document.getElementById('privateKey').value = config.privateKey;
+      document.getElementById('publicKey').value = config.publicKey;
+      document.getElementById('dns').value = config.dns;
+      document.getElementById('ipv4').value = config.ipv4;
+      document.getElementById('ipv6').value = config.ipv6;
+      document.getElementById('mtu').value = config.mtu;
+      document.getElementById('s1').value = config.s1;
+      document.getElementById('s2').value = config.s2;
+      document.getElementById('jc').value = config.jc;
+      document.getElementById('jmin').value = config.jmin;
+      document.getElementById('jmax').value = config.jmax;
+      document.getElementById('h1').value = config.h1;
+      document.getElementById('h2').value = config.h2;
+      document.getElementById('h3').value = config.h3;
+      document.getElementById('h4').value = config.h4;
     }
 
     function resetConfig() {
-      currentConfig = '';
-      updateFormFields({
-        privateKey: '',
-        publicKey: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=',
-        dns: '85.209.2.112',
-        ipv4: generateRandomIPv4(),
-        ipv6: generateRandomIPv6(),
-        mtu: '1280',
-        s1: '0',
-        s2: '0',
-        jc: '4',
-        jmin: '40',
-        jmax: '70',
-        h1: '1',
-        h2: '2',
-        h3: '3',
-        h4: '4'
-      });
-      document.getElementById('configEditor').value = '';
-      document.getElementById('status').textContent = "🔄 Конфиг сброшен";
+      generateAutoConfig();
     }
 
     function downloadConfig() {
@@ -349,3 +341,4 @@ Endpoint = ${config.endpoint}`;
   </script>
 </body>
 </html>
+
