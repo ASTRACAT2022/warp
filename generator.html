@@ -159,23 +159,6 @@
       margin-bottom: 1rem;
       border: 1px solid var(--xray-color);
     }
-
-    .telegram-link {
-      text-align: center;
-      margin-top: 2rem;
-      font-size: 1.1rem;
-      color: var(--primary);
-    }
-
-    .telegram-link a {
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: bold;
-    }
-
-    .telegram-link a:hover {
-      text-decoration: underline;
-    }
   </style>
 </head>
 <body>
@@ -197,7 +180,7 @@
 
         <div class="config-form">
           <div class="form-group"><label>Private Key</label><input id="privateKey" readonly></div>
-          <div class="form-group"><label>Public Key</label><input id="publicKey" readonly></div>
+          <div class="form-group"><label>Public Key</label><input id="publicKey" readonly value="bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="></div>
           <div class="form-group"><label>DNS</label><input id="dns" value="85.209.2.112"></div>
           <div class="form-group"><label>IPv4</label><input id="ipv4" readonly></div>
           <div class="form-group"><label>IPv6</label><input id="ipv6" readonly></div>
@@ -211,6 +194,14 @@
           <div class="form-group"><label>H2</label><input id="h2" value="2"></div>
           <div class="form-group"><label>H3</label><input id="h3" value="3"></div>
           <div class="form-group"><label>H4</label><input id="h4" value="4"></div>
+
+          <div class="form-group">
+            <label>Выберите эндпоинт</label>
+            <select id="endpointSelector">
+              <option value="engage.cloudflareclient.com:2408">engage.cloudflareclient.com:2408</option>
+              <option value="random">Сгенерировать случайный IP</option>
+            </select>
+          </div>
         </div>
 
         <textarea id="configEditor" spellcheck="false"></textarea>
@@ -219,23 +210,23 @@
     </div>
   </div>
 
-  <!-- Telegram link -->
-  <div class="telegram-link">
-    <p>Для поддержки пишите в Telegram: <a href="https://t.me/astracatui" target="_blank">@astracatui</a></p>
-  </div>
-
   <script>
     let currentConfig = '';
-    const endpoints = ["engage.cloudflareclient.com:2408", "188.114.99.235:988", "188.114.96.198:878", "188.114.97.135:1387", "188.114.96.57:3476", "188.114.98.160:8854", "188.114.99.48:4177", "188.114.97.230:7103", "188.114.97.4:4500", "162.159.195.137:1018", "162.159.192.178:4500", "162.159.195.159:5279", "162.159.195.107:4500"];
-
-    function generateKeys() {
-      const privateKey = window.crypto.getRandomValues(new Uint8Array(32));
-      const publicKey = window.crypto.getRandomValues(new Uint8Array(32));
-      return {
-        privateKey: btoa(String.fromCharCode(...privateKey)),
-        publicKey: btoa(String.fromCharCode(...publicKey))
-      };
-    }
+    const endpoints = [
+      "188.114.99.235:988",
+      "188.114.96.198:878",
+      "188.114.97.135:1387",
+      "188.114.96.57:3476",
+      "188.114.98.160:8854",
+      "188.114.99.48:4177",
+      "188.114.97.230:7103",
+      "188.114.97.4:4500",
+      "162.159.195.137:1018",
+      "162.159.192.178:4500",
+      "162.159.195.159:5279",
+      "162.159.195.107:4500",
+      "162.159.195.107:4500"
+    ];
 
     function generateRandomIPv4() {
       return `172.16.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
@@ -276,15 +267,16 @@ Endpoint = ${config.endpoint}`;
     }
 
     function generateAutoConfig() {
-      const keys = generateKeys();
+      const publicKey = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=";
+      const selectedEndpoint = document.getElementById('endpointSelector').value === "random" ? endpoints[Math.floor(Math.random() * endpoints.length)] : "engage.cloudflareclient.com:2408";
       const config = {
-        privateKey: keys.privateKey,
-        publicKey: keys.publicKey,
+        privateKey: btoa(String.fromCharCode(...window.crypto.getRandomValues(new Uint8Array(32)))),
+        publicKey: publicKey,
         ipv4: generateRandomIPv4(),
         ipv6: generateRandomIPv6(),
         dns: document.getElementById('dns').value,
         mtu: document.getElementById('mtu').value,
-        endpoint: endpoints[Math.floor(Math.random() * endpoints.length)],
+        endpoint: selectedEndpoint,
         s1: document.getElementById('s1').value,
         s2: document.getElementById('s2').value,
         jc: document.getElementById('jc').value,
@@ -295,17 +287,41 @@ Endpoint = ${config.endpoint}`;
         h3: document.getElementById('h3').value,
         h4: document.getElementById('h4').value
       };
-      updateFormFields(config);
+
       currentConfig = buildConfigString(config);
+      updateFormFields(config);
       document.getElementById('configEditor').value = currentConfig;
-      showStatus('Конфиг сгенерирован', 'success');
+      document.getElementById('status').textContent = "🟢 Конфиг готов";
+    }
+
+    function resetConfig() {
+      currentConfig = '';
+      updateFormFields({
+        privateKey: '',
+        publicKey: 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=',
+        dns: '85.209.2.112',
+        ipv4: generateRandomIPv4(),
+        ipv6: generateRandomIPv6(),
+        mtu: '1280',
+        s1: '0',
+        s2: '0',
+        jc: '4',
+        jmin: '40',
+        jmax: '70',
+        h1: '1',
+        h2: '2',
+        h3: '3',
+        h4: '4'
+      });
+      document.getElementById('configEditor').value = '';
+      document.getElementById('status').textContent = "🔄 Конфиг сброшен";
     }
 
     function downloadConfig() {
       const blob = new Blob([currentConfig], { type: 'text/plain' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = 'astracatwarp.conf';  // Название файла изменено
+      link.download = 'astracatwarp.conf';
       link.click();
     }
 
@@ -316,30 +332,20 @@ Endpoint = ${config.endpoint}`;
       fileInput.onchange = (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
-        reader.onload = function (e) {
-          currentConfig = e.target.result;
-          document.getElementById('configEditor').value = currentConfig;
-          showStatus('Конфиг импортирован', 'success');
+        reader.onload = () => {
+          const configData = reader.result;
+          currentConfig = configData;
+          document.getElementById('configEditor').value = configData;
+          document.getElementById('status').textContent = "🔄 Конфиг импортирован";
         };
         reader.readAsText(file);
       };
       fileInput.click();
     }
 
-    function showStatus(message, status) {
-      const statusBar = document.getElementById('status');
-      statusBar.textContent = message;
-      statusBar.classList.remove('warning', 'success');
-      statusBar.classList.add(status);
-    }
-
-    function resetConfig() {
-      document.getElementById('configEditor').value = '';
-      currentConfig = '';
-      showStatus('Настройки сброшены', 'warning');
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+      generateAutoConfig();
+    });
   </script>
 </body>
 </html>
-
-
