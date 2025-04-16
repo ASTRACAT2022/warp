@@ -1,37 +1,20 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <!-- Yandex.Metrika counter -->
-<script type="text/javascript" >
-   (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-   m[i].l=1*new Date();
-   for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-   k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-
-   ym(100530848, "init", {
-        clickmap:true,
-        trackLinks:true,
-        accurateTrackBounce:true,
-        webvisor:true
-   });
-</script>
-<noscript><div><img src="https://mc.yandex.ru/watch/100530848" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-<!-- /Yandex.Metrika counter -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AstraCatWarp Editor</title>
+  <title>AstraConfig Pro</title>
   <style>
     :root {
       --bg: #0f172a;
-      --surface: rgba(30, 41, 59, 0.9);
-      --primary: #8b5cf6;
-      --primary-hover: #7c3aed;
+      --surface: rgba(30, 41, 59, 0.8);
+      --primary: #818cf8;
+      --primary-hover: #6366f1;
       --text: #f8fafc;
       --glass-border: rgba(255, 255, 255, 0.1);
-      --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      --error: #ef4444;
-      --success: #10b981;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      --error: #ff4444;
+      --success: #00C851;
       --xray-color: #f59e0b;
     }
 
@@ -47,65 +30,56 @@
       color: var(--text);
       min-height: 100vh;
       background-image: radial-gradient(circle at 50% 50%, rgba(129, 140, 248, 0.1) 0%, transparent 60%);
-      padding: 2rem;
     }
 
-    .header {
-      text-align: center;
-      font-size: 2rem;
-      margin-bottom: 2rem;
-      font-weight: bold;
-      color: var(--primary);
+    .main-content {
+      padding: 2rem;
     }
 
     .main-container {
       max-width: 1200px;
       margin: 0 auto;
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: 280px 1fr;
       gap: 2rem;
     }
 
-    .form-section, .editor-container {
+    .sidebar {
       background: var(--surface);
-      border-radius: 1rem;
-      padding: 2rem;
+      backdrop-filter: blur(12px);
+      border-radius: 1.5rem;
+      padding: 1.5rem;
       border: 1px solid var(--glass-border);
       box-shadow: var(--shadow);
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      display: flex;
+      flex-direction: column;
       gap: 1rem;
     }
 
-    label {
-      font-size: 0.9em;
-      opacity: 0.9;
-      margin-bottom: 0.3rem;
-      display: block;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
     }
 
-    input, select {
-      width: 100%;
-      padding: 0.6rem;
-      border-radius: 0.5rem;
-      border: 1px solid var(--glass-border);
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text);
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
     }
 
-    textarea {
-      width: 100%;
-      height: 200px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 0.5rem;
+    .editor-container {
+      background: var(--surface);
+      backdrop-filter: blur(12px);
+      border-radius: 1.5rem;
+      padding: 2rem;
       border: 1px solid var(--glass-border);
-      padding: 1rem;
-      color: var(--text);
-      font-family: monospace;
-      resize: vertical;
+      box-shadow: var(--shadow);
+      position: relative;
     }
 
     button {
@@ -116,71 +90,143 @@
       border-radius: 0.75rem;
       cursor: pointer;
       transition: all 0.3s ease;
-      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
     }
 
     button:hover {
       background: var(--primary-hover);
     }
 
-    .status {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      padding: 0.5rem;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 0.5rem;
+    .form-group {
+      margin-bottom: 1rem;
     }
 
-    .button-row {
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    .config-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    #configEditor {
+      width: 100%;
+      height: 200px;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--glass-border);
+      border-radius: 0.75rem;
+      color: var(--text);
+      font-family: monospace;
+      resize: vertical;
+    }
+
+    .status-bar {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
       display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 1.5rem;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .warning {
+      color: var(--xray-color);
+      background: rgba(245, 158, 11, 0.1);
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--xray-color);
+    }
+
+    .telegram-link {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+
+    .telegram-link a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .telegram-link a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <div class="header">AstraCatWarpEditor</div>
-  <div class="main-container">
-    <div class="form-section">
-      <div class="form-grid">
-        <div><label>Private Key</label><input id="privateKey" readonly></div>
-        <div><label>Public Key</label><input id="publicKey" readonly></div>
-        <div><label>DNS</label><input id="dns" value="85.209.2.112"></div>
-        <div><label>IPv4</label><input id="ipv4" readonly></div>
-        <div><label>IPv6</label><input id="ipv6" readonly></div>
-        <div><label>MTU</label><input type="number" id="mtu" value="1280"></div>
-        <div><label>Endpoint</label><input id="endpoint"></div>
-        <div><label>S1</label><input id="s1" value="0"></div>
-        <div><label>S2</label><input id="s2" value="0"></div>
-        <div><label>Jc</label><input id="jc" value="4"></div>
-        <div><label>Jmin</label><input id="jmin" value="40"></div>
-        <div><label>Jmax</label><input id="jmax" value="70"></div>
-        <div><label>H1</label><input id="h1" value="1"></div>
-        <div><label>H2</label><input id="h2" value="2"></div>
-        <div><label>H3</label><input id="h3" value="3"></div>
-        <div><label>H4</label><input id="h4" value="4"></div>
-      </div>
-      <div class="button-row">
-        <button onclick="generateAutoConfig()">🎲 Автогенерация</button>
-        <button onclick="downloadConfig()">💾 Скачать</button>
-        <button onclick="resetConfig()">🔄 Сброс</button>
-        <button onclick="location.href='https://astracat2022.github.io/info'">🧩 Генерация XRAY</button>
-      </div>
+  <div class="main-content">
+    <div class="main-container">
+      <aside class="sidebar">
+        <div class="logo">
+          <div class="logo-icon">🔒</div>
+          <h2>AstraConfig Pro</h2>
+        </div>
+        <button onclick="generateAutoConfig()">🎲 Авто-генерация</button>
+        <button onclick="resetConfig()">🔄 Сбросить настройки</button>
+        <button onclick="downloadConfig()">💾 Сохранить конфиг</button>
+        <button onclick="importConfig()">📂 Импорт конфига</button>
+      </aside>
+
+      <main class="editor-container">
+        <div class="warning">⚠️ Не используйте Google Cloud Shell для генерации конфигов!</div>
+
+        <div class="config-form">
+          <div class="form-group"><label>Private Key</label><input id="privateKey" readonly></div>
+          <div class="form-group"><label>Public Key</label><input id="publicKey" readonly></div>
+          <div class="form-group"><label>DNS</label><input id="dns" value="85.209.2.112"></div>
+          <div class="form-group"><label>IPv4</label><input id="ipv4" readonly></div>
+          <div class="form-group"><label>IPv6</label><input id="ipv6" readonly></div>
+          <div class="form-group"><label>MTU</label><input type="number" id="mtu" value="1280"></div>
+          <div class="form-group"><label>S1</label><input id="s1" value="0"></div>
+          <div class="form-group"><label>S2</label><input id="s2" value="0"></div>
+          <div class="form-group"><label>Jc</label><input id="jc" value="4"></div>
+          <div class="form-group"><label>Jmin</label><input id="jmin" value="40"></div>
+          <div class="form-group"><label>Jmax</label><input id="jmax" value="70"></div>
+          <div class="form-group"><label>H1</label><input id="h1" value="1"></div>
+          <div class="form-group"><label>H2</label><input id="h2" value="2"></div>
+          <div class="form-group"><label>H3</label><input id="h3" value="3"></div>
+          <div class="form-group"><label>H4</label><input id="h4" value="4"></div>
+        </div>
+
+        <textarea id="configEditor" spellcheck="false"></textarea>
+        <div class="status-bar" id="status">🟢 Готов к работе</div>
+      </main>
     </div>
-    <div class="editor-container">
-      <textarea id="configEditor" spellcheck="false"></textarea>
-      <div id="status" class="status">🟢 Готов к работе</div>
-    </div>
+  </div>
+
+  <!-- Telegram link -->
+  <div class="telegram-link">
+    <p>Для поддержки пишите в Telegram: <a href="https://t.me/astracatui" target="_blank">@astracatui</a></p>
   </div>
 
   <script>
     let currentConfig = '';
-    const endpoints = [
-      "188.114.99.235:988", "188.114.96.198:878", "188.114.97.135:1387", "188.114.96.57:3476",
-      "188.114.98.160:8854", "188.114.99.48:4177", "188.114.97.230:7103", "188.114.97.4:4500",
-      "162.159.195.137:1018", "162.159.192.178:4500", "162.159.195.159:5279", "162.159.195.107:4500"
-    ];
+    const endpoints = ["engage.cloudflareclient.com:2408", "188.114.99.235:988", "188.114.96.198:878", "188.114.97.135:1387", "188.114.96.57:3476", "188.114.98.160:8854", "188.114.99.48:4177", "188.114.97.230:7103", "188.114.97.4:4500", "162.159.195.137:1018", "162.159.192.178:4500", "162.159.195.159:5279", "162.159.195.107:4500"];
 
     function generateKeys() {
       const privateKey = window.crypto.getRandomValues(new Uint8Array(32));
@@ -252,25 +298,47 @@ Endpoint = ${config.endpoint}`;
       updateFormFields(config);
       currentConfig = buildConfigString(config);
       document.getElementById('configEditor').value = currentConfig;
-      document.getElementById('status').textContent = '✅ Конфиг сгенерирован';
+      showStatus('Конфиг сгенерирован', 'success');
     }
 
     function downloadConfig() {
-      const blob = new Blob([currentConfig], {type: 'text/plain'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `astracatwarp-${Date.now()}.conf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const blob = new Blob([currentConfig], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'config.conf';
+      link.click();
+    }
+
+    function importConfig() {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.conf';
+      fileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          currentConfig = e.target.result;
+          document.getElementById('configEditor').value = currentConfig;
+          showStatus('Конфиг импортирован', 'success');
+        };
+        reader.readAsText(file);
+      };
+      fileInput.click();
+    }
+
+    function showStatus(message, status) {
+      const statusBar = document.getElementById('status');
+      statusBar.textContent = message;
+      statusBar.classList.remove('warning', 'success');
+      statusBar.classList.add(status);
     }
 
     function resetConfig() {
       document.getElementById('configEditor').value = '';
-      generateAutoConfig();
+      currentConfig = '';
+      showStatus('Настройки сброшены', 'warning');
     }
-
-    window.addEventListener('DOMContentLoaded', generateAutoConfig);
   </script>
 </body>
 </html>
+
