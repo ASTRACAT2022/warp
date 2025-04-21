@@ -1,95 +1,483 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>AstraCatWarp — Проверка</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  <style>
-    /* Стили для блокирующего сообщения */
-    .browser-warning {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #0f172a;
-      color: #f8fafc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-      text-align: center;
-      font-family: 'Inter', sans-serif;
-    }
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+       (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+       m[i].l=1*new Date();
+       for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+       k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+       (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
 
-    /* Остальные стили */
-    body {
-      background: #0f172a;
-      color: #f8fafc;
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-    }
+       ym(100530848, "init", {
+            clickmap:true,
+            trackLinks:true,
+            accurateTrackBounce:true,
+            webvisor:true
+       });
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/100530848" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
 
-    .captcha-box {
-      background: rgba(30, 41, 59, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 2rem;
-      border-radius: 1rem;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-      text-align: center;
-      max-width: 400px;
-      width: 100%;
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-    }
+    <!-- Cloudflare Turnstile -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
-    h1 {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstraConfig Pro</title>
+    
+    <!-- Перенаправление через мета-тег только для GitHub Pages -->
+    <script>
+        if (window.location.hostname.includes('github.io')) {
+            document.write('<meta http-equiv="refresh" content="0;url=https://warp-liart.vercel.app">');
+        }
+    </script>
+    
+    <!-- Перенаправление через JavaScript только для GitHub Pages -->
+    <script>
+        if (window.location.hostname.includes('github.io')) {
+            window.location.replace('https://warp-liart.vercel.app');
+        }
+    </script>
 
-  <!-- Проверка браузера -->
-  <script>
-    // Проверка при загрузке страницы
-    window.onload = function() {
-      const isYandex = /YaBrowser|Yowser/i.test(navigator.userAgent);
-      
-      if (isYandex) {
-        document.body.innerHTML = `
-          <div class="browser-warning">
-            <div>
-              <h1>Доступ ограничен</h1>
-              <p>Используйте браузер Chrome, Firefox или Safari</p>
-            </div>
-          </div>
-        `;
-      } else {
-        // Показываем капчу если браузер нормальный
-        document.querySelector('.captcha-box').style.display = 'block';
-      }
-    };
-  </script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: rgba(30, 41, 59, 0.8);
+            --primary: #818cf8;
+            --primary-hover: #6366f1;
+            --text: #f8fafc;
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            --error: #ff4444;
+            --success: #00C851;
+            --xray-color: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 50% 50%, rgba(129, 140, 248, 0.1) 0%, transparent 60%);
+        }
+
+        #captcha-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.98);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+        }
+
+        .captcha-container {
+            background: var(--surface);
+            padding: 3rem;
+            border: 1px solid var(--glass-border);
+            border-radius: 1.5rem;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .captcha-container h1 {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+        }
+
+        .main-content {
+            padding: 2rem;
+            display: none;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+        }
+
+        .sidebar {
+            background: var(--surface);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+        }
+
+        .editor-container {
+            background: var(--surface);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        button {
+            background: var(--primary);
+            color: var(--text);
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+        }
+
+        .config-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        #configEditor {
+            width: 100%;
+            height: 200px;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 0.75rem;
+            color: var(--text);
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        .status-bar {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .warning {
+            color: var(--xray-color);
+            background: rgba(245, 158, 11, 0.1);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--xray-color);
+        }
+
+        #redirect-message {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        #redirect-message h1 {
+            font-size: 2rem;
+            color: var(--primary);
+        }
+
+        #redirect-message p {
+            font-size: 1.2rem;
+        }
+
+        #redirect-message a {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+    </style>
 </head>
-
 <body>
-  <!-- Капча изначально скрыта -->
-  <div class="captcha-box" style="display: none;">
-    <h1>Пожалуйста, пройдите проверку</h1>
-    <div class="cf-turnstile"
-         data-sitekey="0x4AAAAAABLgaFLEZGcqAM3Q"
-         data-callback="onCaptchaSuccess">
+    <!-- Сообщение для GitHub Pages, если редирект не сработал -->
+    <div id="redirect-message" style="display: none;">
+        <h1>Перенаправление...</h1>
+        <p>Вы перенаправляетесь на новый сайт. Если это не произошло, <a href="https://warp-liart.vercel.app">нажмите здесь</a>.</p>
     </div>
-  </div>
 
-  <script>
-    function onCaptchaSuccess(token) {
-      window.location.href = "generator.html";
-    }
-  </script>
+    <!-- CAPTCHA оверлей -->
+    <div id="captcha-overlay">
+        <div class="captcha-container">
+            <h1>🔒 ПРОВЕРКА БЕЗОПАСНОСТИ</h1>
+            <div class="cf-turnstile" 
+                 data-sitekey="0x4AAAAAABLgaFLEZGcqAM3Q"
+                 data-callback="onCaptchaSuccess"
+                 data-error-callback="onCaptchaError"
+                 data-expired-callback="onCaptchaExpired"></div>
+        </div>
+    </div>
+
+    <!-- Оригинальный контент для Vercel -->
+    <div class="main-content" id="main-content">
+        <div class="main-container">
+            <aside class="sidebar">
+                <div class="logo">
+                    <div class="logo-icon">🔒</div>
+                    <h2>AstraConfig Pro</h2>
+                </div>
+                <button onclick="generateAutoConfig()">🎲 Авто-генерация</button>
+                <button onclick="resetConfig()">🔄 Сбросить настройки</button>
+                <button onclick="downloadConfig()">💾 Сохранить конфиг</button>
+                <button onclick="importConfig()">📂 Импорт конфига</button>
+            </aside>
+
+            <main class="editor-container">
+                <div class="warning">⚠️ Не используйте Google Cloud Shell для генерации конфигов!</div>
+
+                <div class="config-form">
+                    <div class="form-group"><label>Private Key</label><input id="privateKey" readonly></div>
+                    <div class="form-group"><label>Public Key</label><input id="publicKey" readonly value="bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="></div>
+                    <div class="form-group"><label>IPv4</label><input id="ipv4" readonly value="172.16.0.2"></div>
+                    <div class="form-group"><label>IPv6</label><input id="ipv6" readonly value="2606:4700:110:8f9c:6051:85c2:19a4:ef13"></div>
+                    <div class="form-group"><label>MTU</label><input type="number" id="mtu" value="1280"></div>
+                    <div class="form-group"><label>S1</label><input id="s1" value="0"></div>
+                    <div class="form-group"><label>S2</label><input id="s2" value="0"></div>
+                    <div class="form-group"><label>Jc</label><input id="jc" value="4"></div>
+                    <div class="form-group"><label>Jmin</label><input id="jmin" value="40"></div>
+                    <div class="form-group"><label>Jmax</label><input id="jmax" value="70"></div>
+                    <div class="form-group"><label>H1</label><input id="h1" value="1"></div>
+                    <div class="form-group"><label>H2</label><input id="h2" value="2"></div>
+                    <div class="form-group"><label>H3</label><input id="h3" value="3"></div>
+                    <div class="form-group"><label>H4</label><input id="h4" value="4"></div>
+
+                    <div class="form-group">
+                        <label>Выберите эндпоинт</label>
+                        <select id="endpointSelector">
+                            <option value="engage.cloudflareclient.com:2408">engage.cloudflareclient.com:2408</option>
+                            <option value="random">Сгенерировать случайный IP</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Выберите DNS</label>
+                        <select id="dnsSelector">
+                            <option value="1.1.1.1, 2606:4700:4700::1111, 1.0.0.1, 2606:4700:4700::1001">Cloudflare DNS (1.1.1.1)</option>
+                            <option value="85.209.2.112">AstraCat DNS (85.209.2.112)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <textarea id="configEditor" spellcheck="false"></textarea>
+                <div class="status-bar" id="status">🟢 Готов к работе</div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Показать сообщение о редиректе и скрыть контент для GitHub Pages
+        if (window.location.hostname.includes('github.io')) {
+            document.getElementById('redirect-message').style.display = 'block';
+            document.getElementById('captcha-overlay').style.display = 'none';
+            document.getElementById('main-content').style.display = 'none';
+        }
+
+        function onCaptchaSuccess(token) {
+            console.log('CAPTCHA Success, token:', token);
+            try {
+                const captchaOverlay = document.getElementById('captcha-overlay');
+                const mainContent = document.getElementById('main-content');
+                if (captchaOverlay && mainContent) {
+                    console.log('Hiding captcha-overlay and showing main-content');
+                    captchaOverlay.style.display = 'none';
+                    mainContent.style.display = 'block';
+                    generateAutoConfig();
+                } else {
+                    console.error('DOM elements not found:', {
+                        captchaOverlay: !!captchaOverlay,
+                        mainContent: !!mainContent
+                    });
+                    alert('Ошибка: не удалось загрузить содержимое. Пожалуйста, обновите страницу.');
+                }
+            } catch (error) {
+                console.error('Error in onCaptchaSuccess:', error);
+                alert('Произошла ошибка: ' + error.message);
+            }
+        }
+
+        function onCaptchaError(error) {
+            console.error('CAPTCHA Error:', error);
+            alert('ОШИБКА ПРОВЕРКИ! Пожалуйста, обновите страницу и попробуйте снова.');
+        }
+
+        function onCaptchaExpired() {
+            console.log('CAPTCHA Expired');
+            alert('СЕССИЯ ИСТЕКЛА! Пожалуйста, обновите страницу.');
+        }
+
+        let currentConfig = '';
+        const endpoints = [
+            "188.114.99.235:988",
+            "188.114.96.198:878",
+            "188.114.97.135:1387",
+            "188.114.96.57:3476",
+            "188.114.98.160:8854",
+            "188.114.99.48:4177",
+            "188.114.97.230:7103",
+            "188.114.97.4:4500",
+            "162.159.195.137:1018",
+            "162.159.192.178:4500",
+            "162.159.195.159:5279",
+            "162.159.195.107:4500"
+        ];
+
+        function generateAutoConfig() {
+            const config = {
+                privateKey: "mIk2nsGpeBbECjw1ZPo+svm2maj5VAwue0fG/oJ8Bwk=",
+                publicKey: "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+                dns: document.getElementById("dnsSelector").value,
+                ipv4: "172.16.0.2",
+                ipv6: "2606:4700:110:8f9c:6051:85c2:19a4:ef13",
+                mtu: "1280",
+                s1: "0",
+                s2: "0",
+                jc: "4",
+                jmin: "40",
+                jmax: "70",
+                h1: "1",
+                h2: "2",
+                h3: "3",
+                h4: "4",
+                endpoint: document.getElementById("endpointSelector").value === "random" ? getRandomEndpoint() : "engage.cloudflareclient.com:2408"
+            };
+
+            currentConfig = buildConfigString(config);
+            updateFormFields(config);
+            document.getElementById('configEditor').value = currentConfig;
+            document.getElementById('status').textContent = "🟢 Конфиг готов";
+        }
+
+        function buildConfigString(config) {
+            return `[Interface]
+PrivateKey = ${config.privateKey}
+S1 = ${config.s1}
+S2 = ${config.s2}
+Jc = ${config.jc}
+Jmin = ${config.jmin}
+Jmax = ${config.jmax}
+H1 = ${config.h1}
+H2 = ${config.h2}
+H3 = ${config.h3}
+H4 = ${config.h4}
+MTU = ${config.mtu}
+Address = ${config.ipv4}, ${config.ipv6}
+DNS = ${config.dns}
+
+[Peer]
+PublicKey = ${config.publicKey}
+AllowedIPs = 0.0.0.0/0, ::/0
+Endpoint = ${config.endpoint}`;
+        }
+
+        function getRandomEndpoint() {
+            const randomIndex = Math.floor(Math.random() * endpoints.length);
+            return endpoints[randomIndex];
+        }
+
+        function updateFormFields(config) {
+            document.getElementById('privateKey').value = config.privateKey;
+            document.getElementById('publicKey').value = config.publicKey;
+            document.getElementById('ipv4').value = config.ipv4;
+            document.getElementById('ipv6').value = config.ipv6;
+            document.getElementById('mtu').value = config.mtu;
+            document.getElementById('s1').value = config.s1;
+            document.getElementById('s2').value = config.s2;
+            document.getElementById('jc').value = config.jc;
+            document.getElementById('jmin').value = config.jmin;
+            document.getElementById('jmax').value = config.jmax;
+            document.getElementById('h1').value = config.h1;
+            document.getElementById('h2').value = config.h2;
+            document.getElementById('h3').value = config.h3;
+            document.getElementById('h4').value = config.h4;
+        }
+
+        function resetConfig() {
+            generateAutoConfig();
+        }
+
+        function downloadConfig() {
+            const blob = new Blob([currentConfig], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'astracatwarp.conf';
+            link.click();
+        }
+
+        function importConfig() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.conf';
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const configData = reader.result;
+                    currentConfig = configData;
+                    document.getElementById('configEditor').value = configData;
+                    document.getElementById('status').textContent = "🔄 Конфиг импортирован";
+                };
+                reader.readAsText(file);
+            };
+            fileInput.click();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // CAPTCHA инициализируется автоматически через Turnstile
+        });
+    </script>
 </body>
 </html>
